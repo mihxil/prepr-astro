@@ -1,67 +1,81 @@
 = Findings
 :toc:
 
+== Research questions
+For this proof-of-concept, we would like to answer the following questions:
+
+- What are the possibilities with respect to Authorization (multi tenant)?
+- Is there any integration with external single-sign-on systems/protocols, such as Azure/OpenID?
+- Is there a workflow? Can we configure it? Can we schedule publications?
+- Where are images/assets stored? Can we link an external storage such as s3?
+- To what extend is there a flexible richtext-editor? Is there the ability to add crosslinks / images / documents / ...?
+
+== Investigation method
+
+To get some hands-on experience with each individual headless-CMS that we're investigating, we setup a small proof-of-concept with sample data from our vproapi. For that, we used 3voor12-updates to model the data, and import 3voor12-updates from the vproapi into Prepr. In addition, we read the Prepr-documentation and asked questions to Prepr (users) about their experience on the topics.
+
+== Authorization
+
+As an organisation, you can have multiple environments (https://docs.prepr.io/account/environments/). Each environment has its own "schema" (https://docs.prepr.io/create-schema/overview), which defines the structure of the content for that specific environment. It contains models, components and remote content.
+
+Given the structure of environments and schema's, users in Prepr can be defined on two levels: on the organisation level (thus for all environments) and on an environment-level (https://docs.prepr.io/account/users/#managing-user-accounts).
+It is not exactly clear wether this also holds for roles & permissions, but it seems that fine-grained custom roles can be created per environment (https://docs.prepr.io/account/roles-and-permissions/) (TODO: ask Prepr / EO about this).
+
+== Single Sign-on
+
+There are two options regarding single sign-on: 1) using Prepr's custom SSO, or 2) using Azure AD (https://docs.prepr.io/account/sso). There is no option for connecting with Keycloak (OpenID). To what extend roles can be synced is not clear from the documentation.
+(TODO: ask Prepr / EO about how roles are arranged within AD or Prepr, and whether they are syncable from AD)
+
+== Workflows
+
+Prepr has a fixed workflow, and looks somewhat like productivity tools such as Jira: there is a flow from TO-DO until done. Check out https://docs.prepr.io/managing-content/collaboration-and-workflows/ for an elaborate description.
+
+Prepr-workflows have the following steps:
+- To do: someone has to work on this item
+- In progress: item is being worked on
+- Review: item can be reviewed by a colleague
+- Done: item is done and can be published
+- Archived: item is not in use anymore
+
+When testing the workflow, it is not going automatically / logically going from one phase to another. As an editor, you have to set the workflow-status yourself (changing it in the dropdown). There's even the possibility to set it immediately to "Done". Not sure if this is just out environment where it works like that (TODO: ask Prepr / EO about workflow and whether we can give permissions to certain people for certain workflow statuses). A workflow like this could be useful, but only if people can not cut corners by changing the status to "Done" themselves, if there should be a reviewer in the process. In addition, if you want a scheduled publication you need to enable the slider with "Schedule" on the right-side of the screen, otherwise an item will automatically get published as soon as it is set to "Done".
+
+Some nice features here are: commenting / discussing an item with a fellow editor and the button "View on example site". Not sure how the latter works (TODO: ask Prepr / EO about preview). In addition, all content items can be viewed on a Kanban-board, which gives a clear overview of all the work to be done.
+
+At last, workflow-automation can be added. This works similar to e-mail filter-rules: if a certain condition is met (e.g. status is set to "Done"), a certain action follows automatically (e.g. link it to another item).
+
+== Images & assets
+
+Prepr has a custom Asset-management-system with CDN (https://docs.prepr.io/managing-content/introduction-to-assets). The following types are supported:
+
+image::findings/prepr_filetypes.png[]
+
+There are some options for editing images in content items, such as cropping, add a caption or aligning the image (https://docs.prepr.io/managing-content/images). There's nothing explicitly mentioned about metadata-customization (TODO: ask about adding custom metadata such as license information).
+
+In the documentation, it is not mentioned wether external solutions such as s3-storage are available, probably meaning it is not available. TODO: ask Prepr / EO about s3-storage
+
 == Editor
 
-https://news-vpro-mihxil.prepr.io/
+The Richtext-editor has several options for enriching text, using basic options such as bold/italic, and more advanced options such as tables with table-headers and text-alignment.
+In addition, it is possible to link to images/assets and to one or more content-items.
+
+== Playing with Prepr
 
 - Bootstrapped with sample data/model
 - Renamed article to Drievoor12update
 - Added and removed some fields
 - The id field will contain the original id (in magnolia, in elasticsearch and in the api)
 
-
-== Prepr API
-
-Just put the key in `.env`, it can be picked up by astro and the python scripts.
-
-This repo is a for of the astro-demo from prepr. We will just play a bit with it.
-
-== Astro example
-
-- install yarn and pnpm using brew, then follow the steps in `README.md`
-
-[source, bash]
-----
-npm run dev
-
-----
-
-At first, I find astro it a bit hard to understand, and mainly I don't know how to debug it. In my efforts I broke it and seemingly can't fixt it. So that may be just me. 
-
-Running on https://prepr-poc.vpro-test.apps.vpro.cluster.chp4.io/
-
-(deployed via https://git.vpro.nl/vrije-ruimte/michiel/prepr-poc/ (accessible @vpro only))
-
-== Flask example
-
-Also tried a flask frontend, since I'm a bit more familiar with that, and more readily knew how to debug it.
-
-Uses the virtualenvironment described in xref:_data_migration[]
-
-[source, bash]]
-----
-cd flask 
-flask$ flask --debug run
- * Debug mode: on
-2023-06-20 21:14:41,473 INFO WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
- * Running on http://127.0.0.1:5000
-2023-06-20 21:14:41,473 INFO Press CTRL+C to quit
-2023-06-20 21:14:41,474 INFO  * Restarting with stat
-2023-06-20 21:14:41,597 WARNING  * Debugger is active!
-2023-06-20 21:14:41,603 INFO  * Debugger PIN: 711-940-217
-----
-
 == Model
 
-No idea of the model allows for enough features. E.g. I tried to add a UUID field, to store the original UUID in magnolia. I think I could only try to validate it with regex pattern?
+No idea if the model allows for enough features. E.g. I tried to add a UUID field, to store the original UUID in magnolia. I think I could only try to validate it with regex pattern?
 
 In this case it would perhaps make sense to just reused the id, UUID are unique, aren't they? I haven't figured out how to do that yet.
 - Simple posting to content_images/<my uuid> gives 404.  -> Isn't possible right now (though Tim suggest that it might be possible to improve that)
 
 I have no idea if we could supply custom field types, e.g. integration for the POMS CMSSelector, for the Thesaurus, for Proof of Provenance fields. 
 
-=== security
+=== Security
+
 For 3voor12 we also have users which may only edit a subset of the content.
 
 I found https://prepr.io/blog/new-role-based-access-control
